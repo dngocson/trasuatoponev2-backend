@@ -12,6 +12,9 @@ const MenuItemSchema = new mongoose.Schema(
       required: [true, "A menu item must have a name "],
       unique: [true, "A menu item must have a unique name"],
     },
+    image: {
+      type: String,
+    },
     description: {
       type: String,
       required: [true, "A description item must have a name "],

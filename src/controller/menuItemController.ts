@@ -1,8 +1,9 @@
-import { MenuItemModel } from "../model/menuItemModel";
-import catchAsync from "../util/catchAsync";
-import APIfeatures from "../util/apiFeatures";
-import createResponse from "../util/createResponse";
 import { StatusCodes } from "http-status-codes";
+import { MenuItemModel } from "../model/menuItemModel";
+import APIfeatures from "../util/apiFeatures";
+import AppError from "../util/appError";
+import catchAsync from "../util/catchAsync";
+import createResponse from "../util/createResponse";
 
 // 1. Get all menu item
 const getAllMenuItems = catchAsync(async (req, res, next) => {
@@ -39,6 +40,12 @@ const createMenuItem = catchAsync(async (req, res, next) => {
 // 3. Get a specific menu item
 const getMenuItem = catchAsync(async (req, res, next) => {
   const menuItem = await MenuItemModel.findById(req.params.id);
+
+  if (!menuItem) {
+    return next(
+      new AppError("Menu bạn tìm không tồn tại", StatusCodes.NOT_FOUND)
+    );
+  }
   const response = createResponse({
     message: "Nhận thành công menu item",
     status: StatusCodes.OK,
@@ -49,14 +56,25 @@ const getMenuItem = catchAsync(async (req, res, next) => {
 
 // 4. Update an menu item
 const updateMenuItem = catchAsync(async (req, res, next) => {
-  const tour = await MenuItemModel.findByIdAndUpdate(req.params.id, req.body, {
-    new: true,
-    runValidators: true,
-  });
+  const menuItem = await MenuItemModel.findByIdAndUpdate(
+    req.params.id,
+    req.body,
+    {
+      new: true,
+      runValidators: true,
+    }
+  );
+
+  if (!menuItem) {
+    return next(
+      new AppError("Menu bạn tìm không tồn tại", StatusCodes.NOT_FOUND)
+    );
+  }
+
   const response = createResponse({
     message: "Sửa menu item thành công",
     status: StatusCodes.CREATED,
-    data: tour,
+    data: menuItem,
   });
   res.status(response.status).json(response);
 });
@@ -64,7 +82,14 @@ const updateMenuItem = catchAsync(async (req, res, next) => {
 // 5. Delete an menu item
 const deleteMenuItem = catchAsync(async (req, res, next) => {
   const id = req.params.id;
-  await MenuItemModel.findOneAndDelete({ _id: id });
+  const menuItem = await MenuItemModel.findOneAndDelete({ _id: id });
+
+  if (!menuItem) {
+    return next(
+      new AppError("Menu bạn tìm không tồn tại", StatusCodes.NOT_FOUND)
+    );
+  }
+
   const response = createResponse({
     message: "Xóa menu item thành công",
     status: StatusCodes.NO_CONTENT,
@@ -72,7 +97,7 @@ const deleteMenuItem = catchAsync(async (req, res, next) => {
   });
   res.status(response.status).json(response);
 });
-export const menuController = {
+export const menuControllers = {
   getAllMenuItems,
   createMenuItem,
   getMenuItem,

@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from "express";
+import { NextFunction, Request, Response } from "express";
 
 export default function catchAsync<T>(
   fn: (req: Request, res: Response, next: NextFunction) => Promise<T>
