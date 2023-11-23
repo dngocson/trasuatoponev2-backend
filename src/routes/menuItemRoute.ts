@@ -8,13 +8,25 @@ const router = express.Router();
 router
   .route("/")
   .get(menuControllers.getAllMenuItems)
-  .post(authControllers.protect, menuControllers.createMenuItem);
+  .post(
+    authControllers.protect,
+    authControllers.restrictedTo("admin"),
+    menuControllers.createMenuItem
+  );
 
 // 2. Get specific item in menu
 router
   .route("/:id")
   .get(menuControllers.getMenuItem)
-  .patch(menuControllers.updateMenuItem)
-  .delete(menuControllers.deleteMenuItem);
+  .patch(
+    authControllers.protect,
+    authControllers.restrictedTo("admin"),
+    menuControllers.updateMenuItem
+  )
+  .delete(
+    authControllers.protect,
+    authControllers.restrictedTo("admin"),
+    menuControllers.deleteMenuItem
+  );
 
 export default router;

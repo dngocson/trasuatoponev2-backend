@@ -1,5 +1,5 @@
-import { z } from "zod";
 import dotenv from "dotenv";
+import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
 
 // 1. Copy environment from config.env to process.env
@@ -19,6 +19,7 @@ const ZodProcessVariableSchema = z.object({
   EMAIL_PASSWORD: z.string(),
   EMAIL_HOST: z.string(),
   EMAIL_PORT: z.string(),
+  REFRESH_TOKEN_SECRET: z.string(),
 });
 
 const validatedENV = ZodProcessVariableSchema.safeParse(process.env);
