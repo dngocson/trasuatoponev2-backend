@@ -1,10 +1,13 @@
+import { NextFunction, Request, Response } from "express";
 import { StatusCodes } from "http-status-codes";
 import { z } from "zod";
 import { Review } from "../model/reviewModel";
 import catchAsync from "../util/catchAsync";
 import createResponse from "../util/createResponse";
 import { helperFunction } from "../util/helperFunction";
+import { handleFactory } from "./handleFactory";
 
+const { deleteOne, updateOne, createOne } = handleFactory;
 const { validateInputfn, removeKeysFromResponse } = helperFunction;
 ///////////////////////////////////////////////////////////////////////////////////////////
 const ZodCreateReviewSchema = z.object({
@@ -33,23 +36,27 @@ const getAllReview = catchAsync(async (req, res, next) => {
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 // 2. Create a new review
-const createNewReview = catchAsync(async (req, res, next) => {
-  // A. Check nested route
+const createNewReview = createOne(Review, ZodCreateReviewSchema, "review");
+
+///////////////////////////////////////////////////////////////////////////////////////////
+// 2. Delete a review
+const deleteReview = deleteOne(Review);
+
+///////////////////////////////////////////////////////////////////////////////////////////
+// 2. Delete a review
+const ZodUpdateReviewSchema = ZodCreateReviewSchema.partial();
+const updateReview = updateOne(Review, ZodUpdateReviewSchema);
+
+///////////////////////////////////////////////////////////////////////////////////////////
+const setMenuAndUserIds = (req: Request, res: Response, next: NextFunction) => {
   if (!req.body.menuItem) req.body.menuItem = req.params.itemId;
   if (!req.body.user) req.body.user = req.user._id;
-  const validatedInput = validateInputfn(
-    ZodCreateReviewSchema,
-    req.body,
-    next
-  ) as ZodCreateReviewSchemaType;
-
-  const newReview = await Review.create(validatedInput);
-  const response = createResponse({
-    message: "Gửi review thành công",
-    status: StatusCodes.CREATED,
-    data: newReview,
-  });
-  res.status(response.status).json(response);
-});
-
-export const reviewControllers = { getAllReview, createNewReview };
+  next();
+};
+export const reviewControllers = {
+  getAllReview,
+  createNewReview,
+  deleteReview,
+  updateReview,
+  setMenuAndUserIds,
+};

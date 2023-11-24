@@ -4,11 +4,13 @@ import { User } from "../model/userModel";
 import catchAsync from "../util/catchAsync";
 import createResponse from "../util/createResponse";
 import { helperFunction } from "../util/helperFunction";
+import { handleFactory } from "./handleFactory";
 
-const { signToken, validateInputfn } = helperFunction;
+const { deleteOne, updateOne } = handleFactory;
+const { validateInputfn } = helperFunction;
 
 /////////////////////////////////////////////////////////////////////////
-const userUpdateSelfSchema = z
+const userUpdateSchema = z
   .object({
     name: z.string(),
     phoneNumber: z.string(),
@@ -18,7 +20,7 @@ const userUpdateSelfSchema = z
   })
   .partial();
 
-type UpdateMeTypeProps = z.infer<typeof userUpdateSelfSchema>;
+type UpdateMeTypeProps = z.infer<typeof userUpdateSchema>;
 /////////////////////////////////////////////////////////////////////////
 // 1. Get all User
 const getAllUser = catchAsync(async (req, res, next) => {
@@ -33,10 +35,10 @@ const getAllUser = catchAsync(async (req, res, next) => {
 });
 
 /////////////////////////////////////////////////////////////////////////
-// 1. User update self
+// 2. User update self
 const userUpdateSelf = catchAsync(async (req, res, next) => {
   const validatedInput = validateInputfn(
-    userUpdateSelfSchema,
+    userUpdateSchema,
     req.body,
     next
   ) as UpdateMeTypeProps;
@@ -54,7 +56,8 @@ const userUpdateSelf = catchAsync(async (req, res, next) => {
   res.status(response.status).json(response);
 });
 
-// 2. User inactive self
+/////////////////////////////////////////////////////////////////////////
+// 3. User inactive self
 const inActiveSelf = catchAsync(async (req, res, next) => {
   await User.findOneAndUpdate(req.user._id, { active: false });
   const response = createResponse({
@@ -65,4 +68,17 @@ const inActiveSelf = catchAsync(async (req, res, next) => {
   res.status(response.status).json(response);
 });
 
-export const userControllers = { getAllUser, userUpdateSelf, inActiveSelf };
+/////////////////////////////////////////////////////////////////////////
+// 4. Delete User
+const deleteUser = deleteOne(User);
+
+/////////////////////////////////////////////////////////////////////////
+// 4. Update User
+const updateUser = updateOne(User, userUpdateSchema);
+export const userControllers = {
+  getAllUser,
+  userUpdateSelf,
+  inActiveSelf,
+  deleteUser,
+  updateUser,
+};

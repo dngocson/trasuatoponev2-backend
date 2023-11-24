@@ -396,7 +396,6 @@ const refreshAccessToken = catchAsync(async (req, res, next) => {
     validatedENV.REFRESH_TOKEN_SECRET
   );
 
-  console.log(decoded);
   const validateDecoded = ZodDecodedSchema.safeParse(decoded);
   if (!validateDecoded.success) {
     return next(

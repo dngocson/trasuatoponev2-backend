@@ -6,8 +6,9 @@ import AppError from "../util/appError";
 import catchAsync from "../util/catchAsync";
 import createResponse from "../util/createResponse";
 import { helperFunction } from "../util/helperFunction";
-const { validateInputfn, removeKeysFromResponse } = helperFunction;
+import { handleFactory } from "./handleFactory";
 
+const { deleteOne, updateOne, createOne } = handleFactory;
 ///////////////////////////////////////////////////////////////////////////////////////////
 const ZodCreateMenuSchema = z.object({
   name: z.string(),
@@ -33,7 +34,6 @@ const ZodCreateMenuSchema = z.object({
     .optional(),
 });
 
-type ZodCreateMenuSchemaType = z.infer<typeof ZodCreateMenuSchema>;
 ///////////////////////////////////////////////////////////////////////////////////////////
 // 1. Get all menu item
 const getAllMenuItems = catchAsync(async (req, res, next) => {
@@ -57,21 +57,7 @@ const getAllMenuItems = catchAsync(async (req, res, next) => {
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 // 2. Create a menu item
-const createMenuItem = catchAsync(async (req, res, next) => {
-  const validatedInput = validateInputfn(
-    ZodCreateMenuSchema,
-    req.body,
-    next
-  ) as ZodCreateMenuSchemaType;
-
-  const newMenuItem = await MenuItem.create(validatedInput);
-  const response = createResponse({
-    message: "Tạo thành công menu item mới",
-    status: StatusCodes.CREATED,
-    data: newMenuItem,
-  });
-  res.status(response.status).json(response);
-});
+const createMenuItem = createOne(MenuItem, ZodCreateMenuSchema, "Menu");
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 // 3. Get a specific menu item
@@ -95,49 +81,14 @@ const getMenuItem = catchAsync(async (req, res, next) => {
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 // 4. Update an menu item
-const updateMenuItem = catchAsync(async (req, res, next) => {
-  const menuItem = await MenuItem.findByIdAndUpdate(
-    req.params.itemId,
-    req.body,
-    {
-      new: true,
-      runValidators: true,
-    }
-  );
-
-  if (!menuItem) {
-    return next(
-      new AppError("Menu bạn tìm không tồn tại", StatusCodes.NOT_FOUND)
-    );
-  }
-
-  const response = createResponse({
-    message: "Sửa menu item thành công",
-    status: StatusCodes.CREATED,
-    data: menuItem,
-  });
-  res.status(response.status).json(response);
-});
+const ZodUpdateMenuSchema = ZodCreateMenuSchema.partial();
+const updateMenuItem = updateOne(MenuItem, ZodUpdateMenuSchema);
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 // 5. Delete an menu item
-const deleteMenuItem = catchAsync(async (req, res, next) => {
-  const id = req.params.itemId;
-  const menuItem = await MenuItem.findOneAndDelete({ _id: id });
+const deleteMenuItem = deleteOne(MenuItem);
 
-  if (!menuItem) {
-    return next(
-      new AppError("Menu bạn tìm không tồn tại", StatusCodes.NOT_FOUND)
-    );
-  }
-
-  const response = createResponse({
-    message: "Xóa menu item thành công",
-    status: StatusCodes.NO_CONTENT,
-    data: null,
-  });
-  res.status(response.status).json(response);
-});
+///////////////////////////////////////////////////////////////////////////////////////////
 export const menuControllers = {
   getAllMenuItems,
   createMenuItem,
