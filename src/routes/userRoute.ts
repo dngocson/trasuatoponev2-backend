@@ -14,13 +14,14 @@ router.patch(
   authControllers.protect,
   authControllers.updatePassword
 );
+router.post("/token", authControllers.refreshAccessToken);
 
 /////////////////////////////////////////////////////////////////////////
 // User
 router.get(
   "/",
   authControllers.protect,
-  authControllers.restrictedTo("admin"),
+  // authControllers.restrictedTo("admin"),
   userControllers.getAllUser
 );
 

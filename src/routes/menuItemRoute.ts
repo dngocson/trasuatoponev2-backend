@@ -7,7 +7,7 @@ const router = express.Router();
 // 1. Get all menu + filter
 router
   .route("/")
-  .get(menuControllers.getAllMenuItems)
+  .get(authControllers.protect, menuControllers.getAllMenuItems)
   .post(
     authControllers.protect,
     authControllers.restrictedTo("admin"),

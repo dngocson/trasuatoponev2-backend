@@ -13,13 +13,14 @@ const ZodProcessVariableSchema = z.object({
   PASSWORD: z.string(),
   DATABASE: z.string(),
   DATABASE_PASSWORD: z.string(),
-  JWT_SECRET: z.string(),
-  JWT_EXPIRES_IN: z.string(),
+  ACCESS_TOKEN_SECRET: z.string(),
+  ACCESS_TOKEN_EXPIRES_IN: z.string(),
   EMAIL_USERNAME: z.string(),
   EMAIL_PASSWORD: z.string(),
   EMAIL_HOST: z.string(),
   EMAIL_PORT: z.string(),
   REFRESH_TOKEN_SECRET: z.string(),
+  ACCESS_COOKIE_EXPIRES_IN: z.string(),
 });
 
 const validatedENV = ZodProcessVariableSchema.safeParse(process.env);

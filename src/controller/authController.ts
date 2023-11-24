@@ -13,8 +13,37 @@ import { sendEmail } from "../util/email";
 import { helperFunction } from "../util/helperFunction";
 import validatedENV from "../util/processEnvironment";
 
-const { signToken, validateInputfn } = helperFunction;
+const { signToken, signRefreshToken, validateInputfn, removeKeysFromResponse } =
+  helperFunction;
+///////////////////////////////////////////////////////////////////////////////////////////
+type CreateTokensProps = {
+  signToken: (id: string) => string;
+  signRefreshToken: (id: string) => string;
+  id: string;
+  res: Response;
+};
+const createTokensAndCookies = function ({
+  signToken,
+  signRefreshToken,
+  id,
+  res,
+}: CreateTokensProps) {
+  const cookieOptions = {
+    expires: new Date(
+      Date.now() + Number(validatedENV.ACCESS_COOKIE_EXPIRES_IN) * 60 * 1000
+    ),
+    httpOnly: true,
+    secure: false,
+  };
+  if (validatedENV.NODE_ENV === "production") cookieOptions.secure = true;
+  res.cookie("accessToken", signToken(id), cookieOptions);
+  return {
+    accessToken: signToken(id),
+    refreshToken: signRefreshToken(id),
+  };
+};
 
+///////////////////////////////////////////////////////////////////////////////////////////
 // 1A. Validate User Input
 const baseUserSchema = z.object({
   name: z.string(),
@@ -76,14 +105,28 @@ const ZodAuthSchema = z.object({
 const ZodDecodedSchema = z.object({
   id: z.string(),
   iat: z.number(),
-  exp: z.number(),
+  exp: z.number().optional(),
 });
 
+// 1D. Validate refresh token
+const ZodRefreshTokenSchema = z.object({
+  refreshToken: z.string().min(1),
+});
+///////////////////////////////////////////////////////////////////////////////////////////
 // 2. Signup function
 const signup = catchAsync(async (req, res, next) => {
   const validatedInput = validateInputfn(ZodUserSignupSchema, req.body, next);
   const newUser = await UserModel.create(validatedInput);
-  const token = signToken(newUser.id);
+  const token = createTokensAndCookies({
+    signToken,
+    signRefreshToken,
+    id: newUser.id,
+    res,
+  });
+  newUser.refreshToken.push(token.refreshToken);
+  await newUser.save({ validateBeforeSave: false });
+
+  removeKeysFromResponse(newUser, ["password", "refreshToken"]);
   const response = createResponse({
     message: "User đăng kí thành công",
     status: StatusCodes.CREATED,
@@ -92,6 +135,7 @@ const signup = catchAsync(async (req, res, next) => {
   res.status(response.status).json(response);
 });
 
+///////////////////////////////////////////////////////////////////////////////////////////
 // 3. Login User using Email + Password
 const login = catchAsync(async (req, res, next) => {
   const validatedInput = validateInputfn(ZodUserLoginSchema, req.body, next);
@@ -111,15 +155,24 @@ const login = catchAsync(async (req, res, next) => {
   }
 
   // C. Create JWT token
-  const token = signToken(user._id);
+  const token = createTokensAndCookies({
+    signToken,
+    signRefreshToken,
+    id: user._id,
+    res,
+  });
+  user.refreshToken.push(token.refreshToken);
+  await user.save({ validateBeforeSave: false });
+  removeKeysFromResponse(user, ["password", "refreshToken"]);
   const response = createResponse({
     message: "Login thành công",
     status: StatusCodes.OK,
-    data: { user: user, token },
+    data: { user, token },
   });
   res.status(response.status).json(response);
 });
 
+///////////////////////////////////////////////////////////////////////////////////////////
 // 4. Protect middleware(verify JWT_token)
 const protect = catchAsync(async (req, res, next) => {
   // A. Get token
@@ -135,8 +188,12 @@ const protect = catchAsync(async (req, res, next) => {
   const token = validatedHeader.data.authorization.split(" ")[1];
 
   // B. Veryfy token
-  // @ts-ignore
-  const decoded = await promisify(jwt.verify)(token, validatedENV.JWT_SECRET);
+  const decoded = await promisify(jwt.verify)(
+    token,
+    // @ts-ignore
+    validatedENV.ACCESS_TOKEN_SECRET
+  );
+
   const validateDecoded = ZodDecodedSchema.safeParse(decoded);
   if (!validateDecoded.success) {
     return next(
@@ -169,6 +226,7 @@ const protect = catchAsync(async (req, res, next) => {
   next();
 });
 
+///////////////////////////////////////////////////////////////////////////////////////////
 // 5. Restrict - Role
 type Role = "user" | "admin";
 const restrictedTo = (...roles: Role[]) => {
@@ -185,6 +243,7 @@ const restrictedTo = (...roles: Role[]) => {
   };
 };
 
+///////////////////////////////////////////////////////////////////////////////////////////
 // 6. Forgot password
 const forgotPassword = catchAsync(async (req, res, next) => {
   // A. Find user based on Email
@@ -231,6 +290,7 @@ const forgotPassword = catchAsync(async (req, res, next) => {
   }
 });
 
+///////////////////////////////////////////////////////////////////////////////////////////
 // 7. ResetPassword
 const resetPassword = catchAsync(async (req, res, next) => {
   const validatedInput = validateInputfn(
@@ -261,15 +321,23 @@ const resetPassword = catchAsync(async (req, res, next) => {
   user.passwordResetToken = undefined;
   user.passwordResetExpires = undefined;
   await user.save();
-  const token = signToken(user.id);
+
+  removeKeysFromResponse(user, ["password", "refreshToken"]);
+  const token = createTokensAndCookies({
+    signToken,
+    signRefreshToken,
+    id: user.id,
+    res,
+  });
   const response = createResponse({
     message: "Password thay đổi thành công",
     status: StatusCodes.OK,
-    data: { user: user, token },
+    data: { user, token },
   });
   res.status(response.status).json(response);
 });
 
+///////////////////////////////////////////////////////////////////////////////////////////
 // 8. Update password
 const updatePassword = catchAsync(async (req, res, next) => {
   // A. Get user from collection
@@ -296,7 +364,13 @@ const updatePassword = catchAsync(async (req, res, next) => {
   await user.save();
 
   // B. Login, send JWT
-  const token = signToken(user.id);
+  // const token = signToken(user.id);
+  const token = createTokensAndCookies({
+    signToken,
+    signRefreshToken,
+    id: user.id,
+    res,
+  });
   const response = createResponse({
     message: "Password thay đổi thành công",
     status: StatusCodes.OK,
@@ -305,6 +379,56 @@ const updatePassword = catchAsync(async (req, res, next) => {
   res.status(response.status).json(response);
 });
 
+///////////////////////////////////////////////////////////////////////////////////////////
+// 9. Reissue Access token
+const refreshAccessToken = catchAsync(async (req, res, next) => {
+  const { refreshToken } = validateInputfn(
+    ZodRefreshTokenSchema,
+    req.body,
+    next
+  ) as { refreshToken: string };
+  const decoded = await promisify(jwt.verify)(
+    refreshToken,
+    // @ts-ignore
+    validatedENV.REFRESH_TOKEN_SECRET
+  );
+
+  const validateDecoded = ZodDecodedSchema.safeParse(decoded);
+  if (!validateDecoded.success) {
+    return next(
+      new AppError(
+        fromZodError(validateDecoded.error).message,
+        StatusCodes.UNAUTHORIZED
+      )
+    );
+  }
+
+  const user = await UserModel.findById(validateDecoded.data.id);
+  if (!user || !user.refreshToken.includes(refreshToken)) {
+    return next(new AppError("Token không khả dụng", StatusCodes.UNAUTHORIZED));
+  }
+  const token = createTokensAndCookies({
+    signToken,
+    signRefreshToken,
+    id: user.id,
+    res,
+  });
+
+  removeKeysFromResponse(user, ["password", "refreshToken"]);
+  const response = createResponse({
+    message: "Refresh token thành công",
+    status: StatusCodes.CREATED,
+    data: {
+      user,
+      token: {
+        accessToken: token.accessToken,
+      },
+    },
+  });
+  res.status(response.status).json(response);
+});
+
+///////////////////////////////////////////////////////////////////////////////////////////
 export const authControllers = {
   signup,
   login,
@@ -313,4 +437,5 @@ export const authControllers = {
   forgotPassword,
   resetPassword,
   updatePassword,
+  refreshAccessToken,
 };

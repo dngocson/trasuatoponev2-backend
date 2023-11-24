@@ -4,9 +4,10 @@ import { fromZodError } from "zod-validation-error";
 import validatedENV from "../util/processEnvironment";
 import AppError from "./appError";
 
+///////////////////////////////////////////////////////////////////////////////////////////
 const signToken = (id: string) => {
-  return jwt.sign({ id }, validatedENV.JWT_SECRET, {
-    expiresIn: validatedENV.JWT_EXPIRES_IN,
+  return jwt.sign({ id }, validatedENV.ACCESS_TOKEN_SECRET, {
+    expiresIn: validatedENV.ACCESS_TOKEN_EXPIRES_IN,
   });
 };
 
@@ -14,6 +15,7 @@ const signRefreshToken = (id: string) => {
   return jwt.sign({ id }, validatedENV.REFRESH_TOKEN_SECRET);
 };
 
+///////////////////////////////////////////////////////////////////////////////////////////
 function validateInputfn(zodSchema: any, validateData: any, next: any) {
   const validatedInput = zodSchema.safeParse(validateData);
   if (!validatedInput.success) {
@@ -26,4 +28,20 @@ function validateInputfn(zodSchema: any, validateData: any, next: any) {
   }
   return validatedInput.data;
 }
-export const helperFunction = { signToken, validateInputfn, signRefreshToken };
+
+///////////////////////////////////////////////////////////////////////////////////////////
+function removeKeysFromResponse(
+  obj: { [key: string]: any },
+  keysToRemove: string[]
+) {
+  keysToRemove.forEach((key: string) => {
+    obj[key] = undefined;
+  });
+}
+
+export const helperFunction = {
+  signToken,
+  validateInputfn,
+  signRefreshToken,
+  removeKeysFromResponse,
+};
