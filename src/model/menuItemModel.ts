@@ -9,32 +9,45 @@ const MenuItemSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: [true, "A menu item must have a name "],
-      unique: [true, "A menu item must have a unique name"],
+      required: [true, "Menu phải có tên"],
+      unique: [true, "Tên menu không được trùng"],
+    },
+    basePrice: { type: Number, required: [true, "Menu phải có giá niêm yết"] },
+    description: {
+      type: String,
+      required: [true, "Menu phải có mô tả "],
+      maxlength: [200, "Mô tả phải ít hơn 40 kí tự"],
+      minlength: [10, "Mô tả phải nhiều hơn 10 kí tự"],
+    },
+    category: {
+      type: String,
+      required: [true, "Menu phải thuộc về một category"],
     },
     image: {
       type: String,
     },
-    description: {
-      type: String,
-      required: [true, "A description item must have a name "],
-      unique: [true, "A description item must have a unique name"],
-      maxlength: [
-        40,
-        "A description must have less or equal then 40 characters",
-      ],
-      minlength: [
-        10,
-        "A description must have more or equal then 10 characters",
-      ],
-    },
-    category: { type: mongoose.Types.ObjectId },
-    basePrice: { type: Number },
     sizes: { type: [ExtraPriceSchema] },
-    extraIngredientPrices: { type: [ExtraPriceSchema] },
+    extraIngredient: { type: [ExtraPriceSchema] },
   },
-  { timestamps: true }
+  { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } }
 );
+///////////////////////////////////////////////////////////////////////////////////////////
+// MenuItemSchema.virtual("TestingField").get(function () {
+//   return this.name.toUpperCase();
+// });
 
-export const MenuItemModel =
-  models?.MenuItem || model("MenuItem", MenuItemSchema);
+// 1. Get user comments with Virtual populate
+MenuItemSchema.virtual("reviews", {
+  ref: "Review",
+  foreignField: "menuItem",
+  localField: "_id",
+});
+export const MenuItem = models?.menuitem || model("MenuItem", MenuItemSchema);
+
+///////////////////////////////////////////
+// EMBEDED IN MONGOSE
+// Schema.pre('save',async function(next){
+//   const variablePromises = this.variable.map(async referenceId => await referenceSchema.findById(referenceId))
+//   this.variable = await Promise.all(variablePromises)
+//   next()
+// })

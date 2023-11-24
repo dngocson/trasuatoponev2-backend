@@ -1,6 +1,6 @@
 import { StatusCodes } from "http-status-codes";
 import { z } from "zod";
-import { UserModel } from "../model/userModal";
+import { User } from "../model/userModel";
 import catchAsync from "../util/catchAsync";
 import createResponse from "../util/createResponse";
 import { helperFunction } from "../util/helperFunction";
@@ -22,7 +22,7 @@ type UpdateMeTypeProps = z.infer<typeof userUpdateSelfSchema>;
 /////////////////////////////////////////////////////////////////////////
 // 1. Get all User
 const getAllUser = catchAsync(async (req, res, next) => {
-  const users = await UserModel.find();
+  const users = await User.find();
 
   const response = createResponse({
     message: "Lấy dữ liệu users thành công",
@@ -41,7 +41,7 @@ const userUpdateSelf = catchAsync(async (req, res, next) => {
     next
   ) as UpdateMeTypeProps;
 
-  const upadtedUser = await UserModel.findByIdAndUpdate(
+  const upadtedUser = await User.findByIdAndUpdate(
     req.user._id,
     validatedInput,
     { new: true, runValidators: true }
@@ -56,7 +56,7 @@ const userUpdateSelf = catchAsync(async (req, res, next) => {
 
 // 2. User inactive self
 const inActiveSelf = catchAsync(async (req, res, next) => {
-  await UserModel.findOneAndUpdate(req.user._id, { active: false });
+  await User.findOneAndUpdate(req.user._id, { active: false });
   const response = createResponse({
     message: "Tài khoản của bạn được xóa thành công",
     status: StatusCodes.NO_CONTENT,

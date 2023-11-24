@@ -4,7 +4,7 @@ import { userControllers } from "../controller/userController";
 
 const router = express.Router();
 /////////////////////////////////////////////////////////////////////////
-// Login, Signup, Forgot password, Reset Password
+// Login, Signup, Forgot password, Reset Password, Refresh Token
 router.post("/signup", authControllers.signup);
 router.post("/login", authControllers.login);
 router.post("/forgotPassword", authControllers.forgotPassword);
@@ -21,7 +21,7 @@ router.post("/token", authControllers.refreshAccessToken);
 router.get(
   "/",
   authControllers.protect,
-  // authControllers.restrictedTo("admin"),
+  authControllers.restrictedTo("admin"),
   userControllers.getAllUser
 );
 

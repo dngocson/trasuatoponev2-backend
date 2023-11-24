@@ -5,7 +5,7 @@ import jwt from "jsonwebtoken";
 import { promisify } from "util";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
-import { UserModel } from "../model/userModal";
+import { User } from "../model/userModel";
 import AppError from "../util/appError";
 import catchAsync from "../util/catchAsync";
 import createResponse from "../util/createResponse";
@@ -19,13 +19,13 @@ const { signToken, signRefreshToken, validateInputfn, removeKeysFromResponse } =
 type CreateTokensProps = {
   signToken: (id: string) => string;
   signRefreshToken: (id: string) => string;
-  id: string;
+  email: string;
   res: Response;
 };
 const createTokensAndCookies = function ({
   signToken,
   signRefreshToken,
-  id,
+  email,
   res,
 }: CreateTokensProps) {
   const cookieOptions = {
@@ -36,10 +36,10 @@ const createTokensAndCookies = function ({
     secure: false,
   };
   if (validatedENV.NODE_ENV === "production") cookieOptions.secure = true;
-  res.cookie("accessToken", signToken(id), cookieOptions);
+  res.cookie("accessToken", signToken(email), cookieOptions);
   return {
-    accessToken: signToken(id),
-    refreshToken: signRefreshToken(id),
+    accessToken: signToken(email),
+    refreshToken: signRefreshToken(email),
   };
 };
 
@@ -103,7 +103,7 @@ const ZodAuthSchema = z.object({
 
 // 1C. Validate JWT token
 const ZodDecodedSchema = z.object({
-  id: z.string(),
+  email: z.string(),
   iat: z.number(),
   exp: z.number().optional(),
 });
@@ -116,16 +116,14 @@ const ZodRefreshTokenSchema = z.object({
 // 2. Signup function
 const signup = catchAsync(async (req, res, next) => {
   const validatedInput = validateInputfn(ZodUserSignupSchema, req.body, next);
-  const newUser = await UserModel.create(validatedInput);
   const token = createTokensAndCookies({
     signToken,
     signRefreshToken,
-    id: newUser.id,
+    email: validatedInput.email,
     res,
   });
-  newUser.refreshToken.push(token.refreshToken);
-  await newUser.save({ validateBeforeSave: false });
-
+  validatedInput.refreshToken = [token.refreshToken];
+  const newUser = await User.create(validatedInput);
   removeKeysFromResponse(newUser, ["password", "refreshToken"]);
   const response = createResponse({
     message: "User đăng kí thành công",
@@ -140,7 +138,7 @@ const signup = catchAsync(async (req, res, next) => {
 const login = catchAsync(async (req, res, next) => {
   const validatedInput = validateInputfn(ZodUserLoginSchema, req.body, next);
   // A. Find User by email
-  const user = await UserModel.findOne({
+  const user = await User.findOne({
     email: validatedInput.email,
   }).select("+password");
 
@@ -158,7 +156,7 @@ const login = catchAsync(async (req, res, next) => {
   const token = createTokensAndCookies({
     signToken,
     signRefreshToken,
-    id: user._id,
+    email: user.email,
     res,
   });
   user.refreshToken.push(token.refreshToken);
@@ -185,11 +183,11 @@ const protect = catchAsync(async (req, res, next) => {
       )
     );
   }
-  const token = validatedHeader.data.authorization.split(" ")[1];
+  const accessToken = validatedHeader.data.authorization.split(" ")[1];
 
-  // B. Veryfy token
+  // B. Veryfy accessToken
   const decoded = await promisify(jwt.verify)(
-    token,
+    accessToken,
     // @ts-ignore
     validatedENV.ACCESS_TOKEN_SECRET
   );
@@ -205,7 +203,9 @@ const protect = catchAsync(async (req, res, next) => {
   }
 
   // C. Check if user still exists
-  const freshUser = await UserModel.findById(validateDecoded.data.id);
+  const freshUser = await User.findOne({
+    email: validateDecoded.data.email,
+  });
   if (!freshUser)
     return next(
       new AppError("User không còn tồn tại", StatusCodes.UNAUTHORIZED)
@@ -252,7 +252,7 @@ const forgotPassword = catchAsync(async (req, res, next) => {
     req.body,
     next
   );
-  const user = await UserModel.findOne({
+  const user = await User.findOne({
     email: validatedInput.email,
   });
 
@@ -304,7 +304,7 @@ const resetPassword = catchAsync(async (req, res, next) => {
     .update(req.params.token)
     .digest("hex");
 
-  const user = await UserModel.findOne({
+  const user = await User.findOne({
     passwordResetToken: hashedToken,
     passwordResetExpires: { $gte: Date.now() },
   }).select("-password");
@@ -316,19 +316,22 @@ const resetPassword = catchAsync(async (req, res, next) => {
       )
     );
   }
+
+  const token = createTokensAndCookies({
+    signToken,
+    signRefreshToken,
+    email: user.email,
+    res,
+  });
+
   user.password = validatedInput.password;
   user.passwordConfirm = validatedInput.passwordConfirm;
+  user.refreshToken = [token.refreshToken];
   user.passwordResetToken = undefined;
   user.passwordResetExpires = undefined;
   await user.save();
 
   removeKeysFromResponse(user, ["password", "refreshToken"]);
-  const token = createTokensAndCookies({
-    signToken,
-    signRefreshToken,
-    id: user.id,
-    res,
-  });
   const response = createResponse({
     message: "Password thay đổi thành công",
     status: StatusCodes.OK,
@@ -346,7 +349,7 @@ const updatePassword = catchAsync(async (req, res, next) => {
     req.body,
     next
   ) as { password: string; passwordConfirm: string; newPassword: string };
-  const user = await UserModel.findById(req.user._id).select("+password");
+  const user = await User.findById(req.user._id).select("+password");
 
   // B. Check if password is correct
   if (!(await user.correctPassword(validatedInput.password, user.password))) {
@@ -361,16 +364,16 @@ const updatePassword = catchAsync(async (req, res, next) => {
   // C. Update password
   user.password = validatedInput.newPassword;
   user.passwordConfirm = validatedInput.passwordConfirm;
-  await user.save();
 
   // B. Login, send JWT
-  // const token = signToken(user.id);
   const token = createTokensAndCookies({
     signToken,
     signRefreshToken,
-    id: user.id,
+    email: user.email,
     res,
   });
+  user.refreshToken = [token.refreshToken];
+  await user.save();
   const response = createResponse({
     message: "Password thay đổi thành công",
     status: StatusCodes.OK,
@@ -393,6 +396,7 @@ const refreshAccessToken = catchAsync(async (req, res, next) => {
     validatedENV.REFRESH_TOKEN_SECRET
   );
 
+  console.log(decoded);
   const validateDecoded = ZodDecodedSchema.safeParse(decoded);
   if (!validateDecoded.success) {
     return next(
@@ -402,15 +406,14 @@ const refreshAccessToken = catchAsync(async (req, res, next) => {
       )
     );
   }
-
-  const user = await UserModel.findById(validateDecoded.data.id);
+  const user = await User.findOne({ email: validateDecoded.data.email });
   if (!user || !user.refreshToken.includes(refreshToken)) {
     return next(new AppError("Token không khả dụng", StatusCodes.UNAUTHORIZED));
   }
   const token = createTokensAndCookies({
     signToken,
     signRefreshToken,
-    id: user.id,
+    email: user.email,
     res,
   });
 

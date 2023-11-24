@@ -5,14 +5,14 @@ import validatedENV from "../util/processEnvironment";
 import AppError from "./appError";
 
 ///////////////////////////////////////////////////////////////////////////////////////////
-const signToken = (id: string) => {
-  return jwt.sign({ id }, validatedENV.ACCESS_TOKEN_SECRET, {
+const signToken = (email: string) => {
+  return jwt.sign({ email }, validatedENV.ACCESS_TOKEN_SECRET, {
     expiresIn: validatedENV.ACCESS_TOKEN_EXPIRES_IN,
   });
 };
 
-const signRefreshToken = (id: string) => {
-  return jwt.sign({ id }, validatedENV.REFRESH_TOKEN_SECRET);
+const signRefreshToken = (email: string) => {
+  return jwt.sign({ email }, validatedENV.REFRESH_TOKEN_SECRET);
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////

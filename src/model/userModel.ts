@@ -66,6 +66,7 @@ const UserSchema = new mongoose.Schema({
   },
 });
 
+///////////////////////////////////////////////////////////////////////////////////////////
 // Hash password before saving
 UserSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
@@ -75,6 +76,7 @@ UserSchema.pre("save", async function (next) {
   next();
 });
 
+///////////////////////////////////////////////////////////////////////////////////////////
 // Add check function to UserSchema
 UserSchema.methods.correctPassword = async function (
   candidatePassword: string,
@@ -83,6 +85,7 @@ UserSchema.methods.correctPassword = async function (
   return await bcrypt.compare(candidatePassword, userPassword);
 };
 
+///////////////////////////////////////////////////////////////////////////////////////////
 // Check if the user changed their password after the JWT token was issued.
 UserSchema.methods.changedPasswordAfter = function (JWTIssuedTime: number) {
   if (this.passwordChangedAt) {
@@ -95,6 +98,7 @@ UserSchema.methods.changedPasswordAfter = function (JWTIssuedTime: number) {
   return false;
 };
 
+///////////////////////////////////////////////////////////////////////////////////////////
 // Generate random reset token for reset password feature
 UserSchema.methods.createPasswordResetToken = function () {
   const resetToken = crypto.randomBytes(32).toString("hex");
@@ -107,6 +111,7 @@ UserSchema.methods.createPasswordResetToken = function () {
   return resetToken;
 };
 
+///////////////////////////////////////////////////////////////////////////////////////////
 // Save time Password was changed
 UserSchema.pre("save", function (next) {
   if (!this.isModified("password") || this.isNew) return next();
@@ -115,10 +120,11 @@ UserSchema.pre("save", function (next) {
   next();
 });
 
+///////////////////////////////////////////////////////////////////////////////////////////
 // Unselect Inactive user
 UserSchema.pre(/^find/, function (next) {
   // @ts-ignore
   this.find({ active: true });
   next();
 });
-export const UserModel = models?.user || model("user", UserSchema);
+export const User = models?.User || model("User", UserSchema);
