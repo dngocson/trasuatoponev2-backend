@@ -7,6 +7,7 @@ export function connectDatabase() {
   const DB_PASSWORD = validatedENV.DATABASE_PASSWORD;
   const DB_CONNECTLINK = DB_URL.replace("<PASSWORD>", DB_PASSWORD);
 
+  /////////////////////////////////////////////////////////////////////////
   // 2.Connect to database
   async function dbConnect() {
     await mongoose.connect(DB_CONNECTLINK);

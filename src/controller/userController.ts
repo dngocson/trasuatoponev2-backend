@@ -5,11 +5,24 @@ import catchAsync from "../util/catchAsync";
 import createResponse from "../util/createResponse";
 import { helperFunction } from "../util/helperFunction";
 import { handleFactory } from "./handleFactory";
+import { NextFunction, Request, Response } from "express";
 
-const { deleteOne, updateOne } = handleFactory;
-const { validateInputfn } = helperFunction;
+const { deleteOne, updateOne, getOneById, getAllDoc } = handleFactory;
 
 /////////////////////////////////////////////////////////////////////////
+// 1. Get all User
+const getAllUser = getAllDoc(User, "User");
+
+/////////////////////////////////////////////////////////////////////////
+// 2. Get a User
+const getUser = getOneById(User, "User", undefined, ["refreshToken"]);
+
+/////////////////////////////////////////////////////////////////////////
+// 3. Delete User
+const deleteUser = deleteOne(User);
+
+/////////////////////////////////////////////////////////////////////////
+// 4. Update User
 const userUpdateSchema = z
   .object({
     name: z.string(),
@@ -20,44 +33,25 @@ const userUpdateSchema = z
   })
   .partial();
 
-type UpdateMeTypeProps = z.infer<typeof userUpdateSchema>;
-/////////////////////////////////////////////////////////////////////////
-// 1. Get all User
-const getAllUser = catchAsync(async (req, res, next) => {
-  const users = await User.find();
-
-  const response = createResponse({
-    message: "Lấy dữ liệu users thành công",
-    status: StatusCodes.OK,
-    data: { users },
-  });
-  res.status(response.status).json(response);
-});
+const updateUser = updateOne(User, userUpdateSchema);
 
 /////////////////////////////////////////////////////////////////////////
-// 2. User update self
-const userUpdateSelf = catchAsync(async (req, res, next) => {
-  const validatedInput = validateInputfn(
-    userUpdateSchema,
-    req.body,
-    next
-  ) as UpdateMeTypeProps;
-
-  const upadtedUser = await User.findByIdAndUpdate(
-    req.user._id,
-    validatedInput,
-    { new: true, runValidators: true }
-  );
-  const response = createResponse({
-    message: "Update dữ liệu của bạn thành công",
-    status: StatusCodes.OK,
-    data: { upadtedUser },
-  });
-  res.status(response.status).json(response);
-});
+// *********************************************************************
+const copyUserParams = (req: Request, res: Response, next: NextFunction) => {
+  req.params.itemId = req.user._id;
+  next();
+};
+// *********************************************************************
+/////////////////////////////////////////////////////////////////////////
+// 5. User Get self
+const userGetSelf = getOneById(User, "User");
 
 /////////////////////////////////////////////////////////////////////////
-// 3. User inactive self
+// 5. User update self
+const userUpdateSelf = updateOne(User, userUpdateSchema);
+
+/////////////////////////////////////////////////////////////////////////
+// 6. User inactive self
 const inActiveSelf = catchAsync(async (req, res, next) => {
   await User.findOneAndUpdate(req.user._id, { active: false });
   const response = createResponse({
@@ -69,16 +63,13 @@ const inActiveSelf = catchAsync(async (req, res, next) => {
 });
 
 /////////////////////////////////////////////////////////////////////////
-// 4. Delete User
-const deleteUser = deleteOne(User);
-
-/////////////////////////////////////////////////////////////////////////
-// 4. Update User
-const updateUser = updateOne(User, userUpdateSchema);
 export const userControllers = {
   getAllUser,
   userUpdateSelf,
   inActiveSelf,
   deleteUser,
   updateUser,
+  getUser,
+  copyUserParams,
+  userGetSelf,
 };

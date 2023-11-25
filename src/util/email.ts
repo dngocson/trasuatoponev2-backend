@@ -17,6 +17,7 @@ export const sendEmail = async (options: OptionsProps) => {
     },
   });
 
+  /////////////////////////////////////////////////////////////////////////
   // 2. Define email options
   const mailOptions = {
     form: "dngocson12@gmail.com",
@@ -25,6 +26,7 @@ export const sendEmail = async (options: OptionsProps) => {
     text: options.text,
   };
 
+  /////////////////////////////////////////////////////////////////////////
   // 3. Send email
   await transporter.sendMail(mailOptions);
 };

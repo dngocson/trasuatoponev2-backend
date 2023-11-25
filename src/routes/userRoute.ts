@@ -3,8 +3,9 @@ import { authControllers } from "../controller/authController";
 import { userControllers } from "../controller/userController";
 
 const router = express.Router();
+
 /////////////////////////////////////////////////////////////////////////
-// 1. Login, Signup, Forgot password, Reset Password, Refresh Token
+// Authentication routes
 router.post("/signup", authControllers.signup);
 router.post("/login", authControllers.login);
 router.post("/forgotPassword", authControllers.forgotPassword);
@@ -17,7 +18,23 @@ router.patch(
 router.post("/token", authControllers.refreshAccessToken);
 
 /////////////////////////////////////////////////////////////////////////
-// 2. Admin actions
+// User actions
+router
+  .route("/me")
+  .get(
+    authControllers.protect,
+    userControllers.copyUserParams,
+    userControllers.userGetSelf
+  )
+  .patch(
+    authControllers.protect,
+    userControllers.copyUserParams,
+    userControllers.userUpdateSelf
+  )
+  .delete(authControllers.protect, userControllers.inActiveSelf);
+
+/////////////////////////////////////////////////////////////////////////
+// Admin actions
 router
   .route("/")
   .get(
@@ -28,6 +45,11 @@ router
 
 router
   .route("/:itemId")
+  .get(
+    authControllers.protect,
+    authControllers.restrictedTo("admin"),
+    userControllers.getUser
+  )
   .delete(
     authControllers.protect,
     authControllers.restrictedTo("admin"),
@@ -38,16 +60,6 @@ router
     authControllers.restrictedTo("admin"),
     userControllers.updateUser
   );
+
 /////////////////////////////////////////////////////////////////////////
-// 3. User actions
-router.patch(
-  "/updateSelf",
-  authControllers.protect,
-  userControllers.userUpdateSelf
-);
-router.delete(
-  "/deleteSelf",
-  authControllers.protect,
-  userControllers.inActiveSelf
-);
 export default router;

@@ -1,10 +1,73 @@
 import { StatusCodes } from "http-status-codes";
 import { Model } from "mongoose";
+import APIfeatures from "../util/apiFeatures";
 import AppError from "../util/appError";
 import catchAsync from "../util/catchAsync";
 import createResponse from "../util/createResponse";
 import { helperFunction } from "../util/helperFunction";
 const { validateInputfn } = helperFunction;
+
+///////////////////////////////////////////////////////////////////////////////////////////
+// 1. Get All Document
+const getAllDoc = function (Model: Model<Document>, docName: string) {
+  return catchAsync(async (req, res, next) => {
+    // For nested route
+    let filter = {};
+    if (req.params.itemId) filter = { menuItem: req.params.itemId };
+    const features = new APIfeatures(Model.find(filter), req.query)
+      .filter()
+      .sort()
+      .limitFields()
+      .paginate();
+
+    // Execute query
+    const doc = await features.query;
+
+    const response = createResponse({
+      message: `${docName} được lấy thành công`,
+      status: StatusCodes.OK,
+      data: doc,
+    });
+
+    res.status(response.status).json(response);
+  });
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////
+// 2. Get Document by Id
+const getOneById = function (
+  Model: Model<Document>,
+  docName: string,
+  populateOption?: { path: string; select?: string },
+  unselecFields?: [string]
+) {
+  return catchAsync(async (req, res, next) => {
+    console.log("Get one by Id");
+    let query = Model.findById(req.params.itemId);
+    if (populateOption) query = query.populate(populateOption);
+    if (unselecFields) {
+      const unselecFieldsText = unselecFields
+        .map((field) => "-" + field)
+        .join(" ");
+      // @ts-ignore
+      query = query.select(unselecFieldsText);
+    }
+    const doc = await query;
+
+    if (!doc) {
+      return next(
+        new AppError(`${docName} bạn tìm không tồn tại`, StatusCodes.NOT_FOUND)
+      );
+    }
+
+    const response = createResponse({
+      message: `${docName} được lấy thành công`,
+      status: StatusCodes.OK,
+      data: doc,
+    });
+    res.status(response.status).json(response);
+  });
+};
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 // 3. Create Document
@@ -71,4 +134,11 @@ const deleteOne = function (Model: Model<Document>) {
   });
 };
 
-export const handleFactory = { deleteOne, updateOne, createOne };
+///////////////////////////////////////////////////////////////////////////////////////////
+export const handleFactory = {
+  deleteOne,
+  updateOne,
+  createOne,
+  getOneById,
+  getAllDoc,
+};

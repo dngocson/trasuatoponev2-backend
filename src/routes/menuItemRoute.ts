@@ -4,6 +4,7 @@ import { authControllers } from "../controller/authController";
 import reviewRouter from "./reviewRoute";
 
 const router = express.Router();
+
 /////////////////////////////////////////////////////////////////////////
 // 1. Get all menu + filter
 router
@@ -15,6 +16,7 @@ router
     menuControllers.createMenuItem
   );
 
+/////////////////////////////////////////////////////////////////////////
 // 2. Get specific item in menu
 router
   .route("/:itemId")
@@ -31,7 +33,8 @@ router
   );
 
 /////////////////////////////////////////////////////////////////////////
-// 1. Merge route
+// 3. Merge route
 router.use("/:itemId/reviews", reviewRouter);
+
 /////////////////////////////////////////////////////////////////////////
 export default router;

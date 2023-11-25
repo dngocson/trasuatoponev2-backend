@@ -1,14 +1,10 @@
-import { StatusCodes } from "http-status-codes";
 import { z } from "zod";
 import { MenuItem } from "../model/menuItemModel";
-import APIfeatures from "../util/apiFeatures";
-import AppError from "../util/appError";
-import catchAsync from "../util/catchAsync";
-import createResponse from "../util/createResponse";
-import { helperFunction } from "../util/helperFunction";
 import { handleFactory } from "./handleFactory";
 
-const { deleteOne, updateOne, createOne } = handleFactory;
+const { deleteOne, updateOne, createOne, getOneById, getAllDoc } =
+  handleFactory;
+
 ///////////////////////////////////////////////////////////////////////////////////////////
 const ZodCreateMenuSchema = z.object({
   name: z.string(),
@@ -36,24 +32,7 @@ const ZodCreateMenuSchema = z.object({
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 // 1. Get all menu item
-const getAllMenuItems = catchAsync(async (req, res, next) => {
-  const features = new APIfeatures(MenuItem.find(), req.query)
-    .filter()
-    .sort()
-    .limitFields()
-    .paginate();
-
-  // Execute query
-  const menuItems = await features.query;
-
-  const response = createResponse({
-    message: "Nhận thành công menu",
-    status: StatusCodes.OK,
-    data: menuItems,
-  });
-
-  res.status(response.status).json(response);
-});
+const getAllMenuItems = getAllDoc(MenuItem, "Menu");
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 // 2. Create a menu item
@@ -61,23 +40,7 @@ const createMenuItem = createOne(MenuItem, ZodCreateMenuSchema, "Menu");
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 // 3. Get a specific menu item
-const getMenuItem = catchAsync(async (req, res, next) => {
-  const menuItem = await MenuItem.findById(req.params.itemId).populate(
-    "reviews"
-  );
-
-  if (!menuItem) {
-    return next(
-      new AppError("Menu bạn tìm không tồn tại", StatusCodes.NOT_FOUND)
-    );
-  }
-  const response = createResponse({
-    message: "Nhận thành công menu item",
-    status: StatusCodes.OK,
-    data: menuItem,
-  });
-  res.status(response.status).json(response);
-});
+const getMenuItem = getOneById(MenuItem, "Menu", { path: "reviews" });
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 // 4. Update an menu item

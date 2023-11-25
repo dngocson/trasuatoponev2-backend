@@ -5,7 +5,7 @@ import { reviewControllers } from "../controller/reviewController";
 const router = express.Router({ mergeParams: true }); // { mergeParams: true }: merge param from menuitem route
 
 /////////////////////////////////////////////////////////////////////////
-// 1. Post new review,
+// 1. Create new review, get all reviews
 router
   .route("/")
   .get(reviewControllers.getAllReview)
@@ -16,9 +16,12 @@ router
   );
 
 /////////////////////////////////////////////////////////////////////////
-// 2. Delete new review,
+// 2. Get,Delete,Update,
 router
   .route("/:itemId")
   .delete(reviewControllers.deleteReview)
-  .patch(reviewControllers.updateReview);
+  .patch(reviewControllers.updateReview)
+  .get(reviewControllers.getReview);
+
+/////////////////////////////////////////////////////////////////////////
 export default router;

@@ -7,5 +7,6 @@ const limiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   message: "Bạn đã gửi quá nhiều request, hãy thử lại sau 1h",
 });
+
 ///////////////////////////////////////////////////////////////////////////////////////////
 export const appSettings = { limiter };

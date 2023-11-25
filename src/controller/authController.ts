@@ -15,6 +15,7 @@ import validatedENV from "../util/processEnvironment";
 
 const { signToken, signRefreshToken, validateInputfn, removeKeysFromResponse } =
   helperFunction;
+
 ///////////////////////////////////////////////////////////////////////////////////////////
 type CreateTokensProps = {
   signToken: (id: string) => string;
@@ -112,6 +113,7 @@ const ZodDecodedSchema = z.object({
 const ZodRefreshTokenSchema = z.object({
   refreshToken: z.string().min(1),
 });
+
 ///////////////////////////////////////////////////////////////////////////////////////////
 // 2. Signup function
 const signup = catchAsync(async (req, res, next) => {

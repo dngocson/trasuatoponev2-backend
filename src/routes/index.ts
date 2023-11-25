@@ -8,4 +8,6 @@ function createRouter(app: Express) {
   app.use("/api/v1/users", userRouter);
   app.use("/api/v1/reviews", reviewRouter);
 }
+
+/////////////////////////////////////////////////////////////////////////
 export default createRouter;

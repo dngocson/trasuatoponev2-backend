@@ -39,6 +39,7 @@ function removeKeysFromResponse(
   });
 }
 
+/////////////////////////////////////////////////////////////////////////
 export const helperFunction = {
   signToken,
   validateInputfn,
