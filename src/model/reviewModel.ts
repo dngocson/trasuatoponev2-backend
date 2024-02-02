@@ -1,4 +1,5 @@
 import mongoose, { model, models } from "mongoose";
+import { MenuItem } from "./menuItemModel";
 
 const ReviewSchema = new mongoose.Schema(
   {
@@ -33,6 +34,36 @@ ReviewSchema.pre(/^find/, function (next) {
 
   next();
 });
+///////////////////////////////////////////////////////////////////////////////////////////
+// 2. Calulate review with Static methods
+ReviewSchema.statics.calcAverageRatings = async function (menuItemId) {
+  const stats = await this.aggregate([
+    { $match: { menuItem: menuItemId } },
+    {
+      $group: {
+        _id: "$menuItem",
+        nRating: { $sum: 1 },
+        avgRating: { $avg: "$rating" },
+      },
+    },
+  ]);
+
+  await MenuItem.findByIdAndUpdate(menuItemId, {
+    ratingsQuantity: stats[0].nRating || 0,
+    ratingsAverage: stats[0].avgRating || 0,
+  });
+};
+
+ReviewSchema.post("save", function () {
+  // @ts-ignore
+  this.constructor.calcAverageRatings(this.menuItem);
+});
+
+ReviewSchema.post(/^findOneAnd/, async function (doc) {
+  if (doc) await doc.constructor.calcAverageRatings(doc.menuItem);
+});
+
+ReviewSchema.index({ menuItem: 1, user: 1 }, { unique: true });
 
 /////////////////////////////////////////////////////////////////////////
 export const Review = models?.Review || model("Review", ReviewSchema);

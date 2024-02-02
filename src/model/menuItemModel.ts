@@ -1,4 +1,5 @@
 import mongoose, { model, models, Schema } from "mongoose";
+import slugify from "slugify";
 
 const ExtraPriceSchema = new Schema({
   name: String,
@@ -12,6 +13,9 @@ const MenuItemSchema = new mongoose.Schema(
       required: [true, "Menu phải có tên"],
       unique: [true, "Tên menu không được trùng"],
     },
+    engName: {
+      type: String,
+    },
     basePrice: { type: Number, required: [true, "Menu phải có giá niêm yết"] },
     description: {
       type: String,
@@ -23,6 +27,13 @@ const MenuItemSchema = new mongoose.Schema(
       type: String,
       required: [true, "Menu phải thuộc về một category"],
     },
+    ratingsAverage: {
+      type: Number,
+      set: (val: number) => val.toFixed(2),
+    },
+    ratingsQuantity: {
+      type: Number,
+    },
     image: {
       type: String,
     },
@@ -32,10 +43,6 @@ const MenuItemSchema = new mongoose.Schema(
   { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } }
 );
 ///////////////////////////////////////////////////////////////////////////////////////////
-// MenuItemSchema.virtual("TestingField").get(function () {
-//   return this.name.toUpperCase();
-// });
-
 // 1. Get user comments with Virtual populate
 MenuItemSchema.virtual("reviews", {
   ref: "Review",
@@ -43,6 +50,19 @@ MenuItemSchema.virtual("reviews", {
   localField: "_id",
 });
 
+// 2. Document middleWare
+MenuItemSchema.pre("save", function (next) {
+  this.engName = slugify(this.name, {
+    lower: true,
+    locale: "vi",
+    replacement: " ",
+    trim: true,
+  });
+  next();
+});
+
+// 2. Set index
+MenuItemSchema.index({ basePrice: 1 });
 /////////////////////////////////////////////////////////////////////////
 export const MenuItem = models?.menuitem || model("MenuItem", MenuItemSchema);
 
@@ -53,3 +73,7 @@ export const MenuItem = models?.menuitem || model("MenuItem", MenuItemSchema);
 //   this.variable = await Promise.all(variablePromises)
 //   next()
 // })
+
+// MenuItemSchema.virtual("TestingField").get(function () {
+//   return this.name.toUpperCase();
+// });

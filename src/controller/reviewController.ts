@@ -29,7 +29,7 @@ const createNewReview = createOne(Review, ZodCreateReviewSchema, "review");
 const deleteReview = deleteOne(Review);
 
 ///////////////////////////////////////////////////////////////////////////////////////////
-// 5. Delete a review
+// 5. Update a review
 const ZodUpdateReviewSchema = ZodCreateReviewSchema.partial();
 const updateReview = updateOne(Review, ZodUpdateReviewSchema);
 

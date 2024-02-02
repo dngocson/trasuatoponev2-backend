@@ -22,6 +22,9 @@ const ZodProcessVariableSchema = z.object({
   EMAIL_PORT: z.string(),
   REFRESH_TOKEN_SECRET: z.string(),
   ACCESS_COOKIE_EXPIRES_IN: z.string(),
+  CLOUDINARY_NAME: z.string(),
+  CLOUDINARY_API_KEY: z.string(),
+  CLOUDINARY_API_SECRET: z.string(),
 });
 
 const validatedENV = ZodProcessVariableSchema.safeParse(process.env);

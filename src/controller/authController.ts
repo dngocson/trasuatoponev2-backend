@@ -233,7 +233,7 @@ const protect = catchAsync(async (req, res, next) => {
 type Role = "user" | "admin";
 const restrictedTo = (...roles: Role[]) => {
   return (req: Request, res: Response, next: NextFunction) => {
-    if (!roles.includes(req?.user.role)) {
+    if (!roles.includes(req?.user?.role)) {
       return next(
         new AppError(
           "Bạn không quyền thực hiện hành động này",

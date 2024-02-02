@@ -1,11 +1,10 @@
+import { NextFunction, Request, Response } from "express";
 import { StatusCodes } from "http-status-codes";
 import { z } from "zod";
 import { User } from "../model/userModel";
 import catchAsync from "../util/catchAsync";
 import createResponse from "../util/createResponse";
-import { helperFunction } from "../util/helperFunction";
 import { handleFactory } from "./handleFactory";
-import { NextFunction, Request, Response } from "express";
 
 const { deleteOne, updateOne, getOneById, getAllDoc } = handleFactory;
 
