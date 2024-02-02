@@ -5,7 +5,8 @@
   "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon dist/server.js "
+    "start": "nodemon dist/server.js ",
+    "build": "tsc"
   },
   "author": "Do Ngoc Son",
   "license": "ISC",
@@ -28,6 +29,7 @@
     "nodemailer": "^6.9.7",
     "nodemon": "^3.0.3",
     "slugify": "^1.6.6",
+    "tsc": "^2.0.4",
     "typescript": "^5.2.2",
     "validator": "^13.11.0",
     "zod": "^3.22.4",
